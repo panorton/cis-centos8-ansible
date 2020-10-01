@@ -23,7 +23,19 @@
         owner: root
         group: root
         mode: '0600'
-    - name: Install prereq pacakges for Foreman
+    - name: Install additional packages
+      yum:
+        state: present
+        name:
+          - selinux-policy-devel
+          - vim
+          - rsyslog   
+    - name: Start rsyslog
+      systemd:
+        name: rsyslog
+        enabled: yes
+        state: started 
+    - name: Install prereq packages for Foreman
       yum:
         state: present
         name:
