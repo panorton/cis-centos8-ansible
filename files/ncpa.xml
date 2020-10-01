@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>NCPA</short>
+  <description>NCPA provides Nagios monitoring services for key processes.</description>
+  <port protocol="tcp" port="5693"/>
+</service>

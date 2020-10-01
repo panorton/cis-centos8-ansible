@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>HIPAA</short>
+  <description>For use on computers operating within the SDSC HIPAA environment.</description>
+  <service name="nessus"/>
+  <service name="ssh"/>
+  <service name="ncpa"/>
+  <service name="commvault"/>
+</zone>

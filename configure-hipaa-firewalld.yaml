@@ -1,0 +1,35 @@
+---
+- hosts: all
+  user: foreman
+  become: true
+
+  tasks:
+
+    - name: "Copy service files"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/firewalld/services/
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+        - commvault.xml
+        - ncpa.xml
+        - nessus.xml
+        - ssh.xml
+
+    - name: "Copy zone file"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/firewalld/zones/
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+        - hipaa.xml
+
+    - name: "Enable and restart firewalld"
+      systemd:
+        name: firewalld
+        enabled: yes
+        state: restarted

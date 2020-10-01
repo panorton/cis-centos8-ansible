@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>Nessus Agent</short>
+  <description>Nessus monitoring agent.</description>
+  <port protocol="tcp" port="8834"/>
+</service>
