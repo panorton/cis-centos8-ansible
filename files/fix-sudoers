@@ -1,0 +1,33 @@
+#!/bin/bash
+
+TARGET="/etc/sudoers"
+
+if grep -q '^\(root\|%wheel\)\s\+ALL=(ALL)\s\+ALL$' "$TARGET" ; then
+	if sed -i 's/^\(root\|%wheel\)\s\+ALL=(ALL)\s\+ALL$/\1\tALL=(ALL)\tLOG_INPUT:\tLOG_OUTPUT:\tALL/g' "$TARGET" ; then
+		echo "Enabled logging for root and %wheel in $TARGET."
+	else
+		echo "Logging enabling for root and %wheel failed. Please check $TARGET."
+	fi
+else
+	echo "Logging already enabled for root and %wheel in $TARGET."
+fi
+
+if ! grep -q '^Defaults\s\+iolog_dir=/var/log/sudo-io/%{user}$' "$TARGET" ; then
+	if sed -i 's|^Defaults\s\+secure_path.*$|&\nDefaults\tiolog_dir=/var/log/sudo-io/%{user}|' "$TARGET" ; then
+		echo "Enabled logging in $TARGET."
+	else
+		echo "Logging enabling failed. Please check $TARGET."
+	fi
+else
+	echo "Logging already enabled in $TARGET."
+fi
+
+if !  grep -q 'secure_path.*~\/bin' "$TARGET"; then
+	if sed -i '/secure_path/ s/$/:~\/bin/' "$TARGET"; then
+		echo "Enabled /root/bin path for sudoers in $TARGET."
+	else
+		echo "Enabling /root/bin path for sudoers failed.  Please check $TARGET."
+	fi
+else
+	echo "/root/bin path already enabled in $TARGET."
+fi
