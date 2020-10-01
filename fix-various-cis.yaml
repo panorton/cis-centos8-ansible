@@ -1,8 +1,6 @@
 ---
-- hosts: all
-  user: foreman
-  become: true
-  vars:
+- hosts: 127.0.0.1
+  connection: local
   tasks:
     - name: "Find setuid-setgid files"
       shell: find / -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null
@@ -20,8 +18,19 @@
       lineinfile:
         path: /etc/security/limits.conf
         line: "*\thard\tcore\t0"
-    - name: "Fetch fix-rpm-perms script and run it"
-      shell: /root/bin/fetch -ef fix-rpm-perms
+    - name: "Set suid_dumpable = 0"
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "fs.suid_dumpable = 0"
+    - name: "Install fix-rpm-perms script"
+      copy:
+        src: fix-rpm-perms
+        dest: /root/bin/
+        owner: root
+        group: root
+        mode: 0700
+    - name: "Run fix-rpm-perms script"
+      shell : "/root/bin/fix-rpm-perms"
     - name: "Set log permissions"
       file:
         path: /var/log/{{ item }}
@@ -29,8 +38,15 @@
       with_items:
         - cron
         - spooler
-        - boot.log
         - maillog
         - messages
         - secure
-
+    - name: "Install fix-sudoers script"
+      copy:
+        src: fix-sudoers
+        dest: /root/bin/
+        owner: root
+        group: root
+        mode: 0700
+    - name: "Run fix-sudoers script"
+      shell : "/root/bin/fix-sudoers"
