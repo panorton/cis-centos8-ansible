@@ -5,5 +5,4 @@
   <service name="nessus"/>
   <service name="ssh"/>
   <service name="ncpa"/>
-  <service name="commvault"/>
 </zone>
