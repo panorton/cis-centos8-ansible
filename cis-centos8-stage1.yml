@@ -1,0 +1,55 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  tasks:
+    - name: Set SELinux to permissive mode
+      selinux:
+        policy: targeted
+        state: permissive
+    - name: Set timezone to America/Los_Angeles
+      timezone:
+        name: America/Los_Angeles
+    - name: Create swap file
+      command: dd if=/dev/zero of=/swapfile bs=1M count=4096 creates=/swapfile
+    - name: Set permissions on swap file
+      file: 
+        path: /swapfile
+        owner: root
+        group: root
+        mode: '0600'
+    - name: Check swap file type
+      command: file /swapfile
+      register: swapfile
+    - name: Make swap file
+      command: mkswap /swapfile
+      when: swapfile.stdout.find('swap file') == -1
+    - name: Write swap entry to fstab
+      mount:
+        path: swap
+        src: /swapfile
+        fstype: swap
+        opts: defaults
+        passno: 0
+        dump: 0
+        state: present
+    - name: Mount swap
+      command: swapon /swapfile
+      when: ansible_swaptotal_mb < 1
+    - name: Create cloud-init file that disables root growpart
+      file: 
+        path: /etc/growroot-disabled
+        state: touch
+        owner: root
+        group: root
+        mode: 0644
+    - name: Create growpart.cfg to disable auto partition resize
+      copy: 
+        dest: "/etc/cloud/cloud.cfg.d/99_growpart.cfg"
+        owner: root
+        group: root
+        mode: 0644
+        content: |
+          growpart:
+            mode: off
+            devices: ["/"]
+            ignore_growroot_disabled: false
