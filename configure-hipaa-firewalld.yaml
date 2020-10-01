@@ -1,10 +1,7 @@
 ---
-- hosts: all
-  user: foreman
-  become: true
-
+- hosts: 127.0.0.1
+  connection: local
   tasks:
-
     - name: "Copy service files"
       copy:
         src: "{{ item }}"
@@ -13,11 +10,9 @@
         group: root
         mode: 0644
       with_items:
-        - commvault.xml
         - ncpa.xml
         - nessus.xml
         - ssh.xml
-
     - name: "Copy zone file"
       copy:
         src: "{{ item }}"
@@ -27,9 +22,10 @@
         mode: 0644
       with_items:
         - hipaa.xml
-
     - name: "Enable and restart firewalld"
       systemd:
         name: firewalld
         enabled: yes
         state: restarted
+    - name: "Set default zone"
+      shell: "firewall-cmd --set-default-zone hipaa"
