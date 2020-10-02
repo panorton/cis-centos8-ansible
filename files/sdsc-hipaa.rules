@@ -45,16 +45,15 @@
 -w /etc/sysconfig/network-scripts/ -p wa -k system-locale
 
 -w /etc/selinux/ -p wa -k MAC-policy
+-w /usr/share/selinux/ -p wa -k MAC-policy
 
 -w /var/log/tallylog -p wa -k logins
--w /var/run/faillock/ -p wa -k logins
+-w /var/run/faillog -p wa -k logins
 -w /var/log/lastlog -p wa -k logins
--w /var/log/wtmp -p wa -k logins
--w /var/log/btmp -p wa -k logins
 
 -w /var/run/utmp -p wa -k session
--w /var/log/btmp -p wa -k session
--w /var/log/wtmp -p wa -k session
+-w /var/log/wtmp -p wa -k logins
+-w /var/log/btmp -p wa -k logins
 
 -a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access 
 -a always,exit -F arch=b32 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access 
