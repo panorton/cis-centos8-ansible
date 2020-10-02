@@ -1,0 +1,37 @@
+#!/bin/bash
+
+targ1="/etc/default/grub"
+targ2=$(find /boot -name "grub.cfg")
+
+do_mkconfig ()
+	{
+	grub2-mkconfig -o "$targ2"
+	}
+
+if ! grep -q '^GRUB_CMDLINE_LINUX.*audit=1"$' "$targ1"; then
+	sed -i '/^GRUB_CMDLINE_LINUX/ s/\(.*\)"/\1 audit\=1\"/' "$targ1"
+	flag="1"
+	printf "Auditing successfully enabled in $targ1.\n"
+else
+	printf "Auditing already enabled in $targ1.\n"
+fi
+
+if ! grep -q '^GRUB_CMDLINE_LINUX.*audit_backlog_limit"$' "$targ1"; then
+	sed -i '/^GRUB_CMDLINE_LINUX/ s/\(.*\)"/\1 audit_backlog_limit\=8192\"/' "$targ1"
+	flag="1"
+	printf "Audit backlog limit successfully enabled in $targ1.\n"
+else
+	printf "Audit backlog limit already enabled in $targ1.\n"
+fi
+
+if ! grep -q '^GRUB_CMDLINE_LINUX.*ipv6.disable=1"$' "$targ1"; then
+	sed -i '/^GRUB_CMDLINE_LINUX/ s/\(.*\)"/\1 ipv6.disable\=1\"/' "$targ1"
+	flag="1"
+	printf "IPv6 successfully disabled in $targ1.\n"
+else
+	printf "IPv6 already disabled in $targ1.\n"
+fi
+
+if [[ "$flag" -eq 1 ]]; then
+	do_mkconfig
+fi
