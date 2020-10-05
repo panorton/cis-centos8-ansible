@@ -1,8 +1,11 @@
 #!/bin/bash
 
+sudo rm -f /etc/motd.d/cockpit /etc/issue.d/cockpit.issue
+sudo systemctl disable cockpit-motd
+sudo systemctl mask cockpit-motd
 sudo dnf -q -y upgrade
 sudo dnf -q -y install epel-release
-sudo dnf -q -y install ansible git
+sudo dnf -q -y install ansible git nano vim htop
 cat << EOF >> ~/.ansible.cfg
 [defaults]
 retry_files_enabled = False
