@@ -2,10 +2,6 @@
 - hosts: 127.0.0.1
   connection: local
   tasks:
-    - name: Install firewalld
-      yum:
-        name: firewalld
-        state: latest
     - name: Set executable user permissions on rc.local
       file:
         path: /etc/rc.d/rc.local
@@ -16,25 +12,6 @@
       file:
         path: /root/bin
         state: directory
-    - name: Set login banner
-      copy:
-        src: banner.txt
-        dest: /etc/issue
-        owner: root
-        group: root
-        mode: '0600'
-    - name: Install additional packages
-      yum:
-        state: present
-        name:
-          - selinux-policy-devel
-          - vim
-          - rsyslog   
-    - name: Start rsyslog
-      systemd:
-        name: rsyslog
-        enabled: yes
-        state: started 
     - name: Install prereq packages for Foreman
       yum:
         state: present
@@ -48,3 +25,309 @@
           - python3-subscription-manager-rhsm
           - subscription-manager-rhsm-certificates 
           - usermode
+    - name: Install additional packages
+      yum:
+        state: present
+        name:
+          - selinux-policy-devel
+          - vim
+    # 3.4.1 Ensure Firewall software is installed
+    - name: Install firewalld
+      yum:
+        name: firewalld
+        state: latest
+    # 3.4.2.5 Ensure unnecessary services and ports are not accepted
+    - name: "Copy service files"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/firewalld/services/
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+        - ncpa.xml
+        - nessus.xml
+        - ssh.xml
+    - name: "Copy zone file"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/firewalld/zones/
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+        - hipaa.xml
+    # 3.4.2.1 Ensure firewalld service is enabled and running
+    - name: "Enable and restart firewalld"
+      systemd:
+        name: firewalld
+        enabled: yes
+        state: restarted
+    # 3.4.2.3 Ensure default zone is set 
+    - name: "Set default zone"
+      shell: "firewall-cmd --set-default-zone hipaa"
+    # 1.8.1.2 Ensure local login warning banner is configured properly
+    - name: Set login banner
+      copy:
+        src: banner.txt
+        dest: /etc/issue
+        owner: root
+        group: root
+        mode: '0600'
+    # 4.2.1.1 Ensure rsyslog is installed
+    - name: Install rsyslog
+      yum:
+        state: present
+        name:
+          - rsyslog
+    # 4.2.1.2 Ensure rsyslog Service is enabled
+    - name: Start rsyslog
+      systemd:
+        name: rsyslog
+        enabled: yes
+        state: started 
+    # 3.6 Disable IPv6
+    # 4.1.1.3 Ensure auditing for processes that start prior to auditd is enabled
+    # 4.1.1.4 Ensure audit_backlog_limit is sufficient
+    - name: Copy grub script
+      copy:
+        src: fix-grub-default
+        dest: /root/bin/fix-grub-default
+        owner: root
+        group: root
+        mode: '0700'
+    - name: Run grub script
+      shell: "/root/bin/fix-grub-default"
+    # 1.5.1 Ensure permissions on bootloader config are configured 
+    - name: Set root ownership on grub.cfg
+      shell: "chown root:root /boot/grub2/grub.cfg"
+    - name: Set file mode permissinons on grub.cfg
+      shell: "chmod og-rwx /boot/grub2/grub.cfg"
+    - name: Set root ownership on grubenv
+      shell: "chown root:root /boot/grub2/grubenv"
+    - name: Set file mode permissinons on grubenv
+      shell: "chmod og-rwx /boot/grub2/grubenv"
+    # 4.1.3 Ensure changes to system administration scope (sudoers) is collected
+    # 4.1.4 Ensure login and logout events are collected
+    # 4.1.5 Ensure session initiation information is collected
+    # 4.1.6 Ensure events that modify date and time information are collected
+    # 4.1.7 Ensure events that modify the system's Mandatory Access Controls are collected 
+    # 4.1.8 Ensure events that modify the system's network environment are collected
+    # 4.1.9 Ensure discretionary access control permission modification events are collected
+    # 4.1.10 Ensure unsuccessful unauthorized file access attempts are collected
+    # 4.1.11 Ensure events that modify user/group information are collected
+    # 4.1.12 Ensure successful file system mounts are collected
+    # 4.1.14 Ensure file deletion events by users are collected 
+    # 4.1.15 Ensure kernel module loading and unloading is collected 
+    # 4.1.16 Ensure system administrator actions (sudolog) are collected
+    # 4.1.17 Ensure the audit configuration is immutable
+    - name: Copy over audit rules file
+      copy:
+        src: sdsc-hipaa.rules
+        dest: /etc/audit/rules.d/sdsc-hipaa.rules
+        owner: root
+        group: root
+        mode: '0644'
+    - name: "Find setuid-setgid files"
+      shell: find / -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null
+      register: found_setuid_setgid
+    - name: "Create rules file"
+      file:
+        path: /etc/audit/rules.d/setuid-setgid.rules
+        state: touch
+    # 4.1.13 Ensure use of privileged commands is collected
+    - name: "Add lines to rules file"
+      lineinfile:
+        path: /etc/audit/rules.d/setuid-setgid.rules
+        line: '-a always,exit -F path={{ item }} -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged'
+      with_items: "{{ found_setuid_setgid.stdout_lines }}"
+    - name: "Disable core dumps for users"
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: "*\thard\tcore\t0"
+    # 1.6.1 Ensure core dumps are restricted
+    # 1.6.2 Ensure address space layout randomization (ASLR) is enabled
+    # 3.1.1 Ensure IP forwarding is disabled 
+    # 3.1.2 Ensure packet redirect sending is disabled
+    # 3.2.1 Ensure source routed packets are not accepted 
+    # 3.2.2 Ensure ICMP redirects are not accepted 
+    # 3.2.3 Ensure secure ICMP redirects are not accepted 
+    # 3.2.4 Ensure suspicious packets are logged 
+    # 3.2.5 Ensure broadcast ICMP requests are ignored
+    # 3.2.6 Ensure bogus ICMP responses are ignored 
+    # 3.2.8 Ensure TCP SYN Cookies is enabled
+    - name: "Copy CIS sysctl config file"
+      copy:
+        src: cis-sysctl.conf
+        dest: /etc/sysctl.d/cis-sysctl.conf
+        owner: root
+        group: root
+        mode: 0644
+    - name: "Install fix-rpm-perms script"
+      copy:
+        src: fix-rpm-perms
+        dest: /root/bin/
+        owner: root
+        group: root
+        mode: 0700
+    - name: "Run fix-rpm-perms script"
+      shell : "/root/bin/fix-rpm-perms"
+    - name: "Set log permissions"
+      file:
+        path: /var/log/{{ item }}
+        mode: '0600'
+      with_items:
+        - cron
+        - spooler
+        - maillog
+        - messages
+        - secure
+    - name: "Install fix-sudoers script"
+      copy:
+        src: fix-sudoers
+        dest: /root/bin/
+        owner: root
+        group: root
+        mode: 0700
+    - name: "Run fix-sudoers script"
+      shell : "/root/bin/fix-sudoers"
+    # 1.1.1.1 Ensure mounting of cramfs filesystems is disabled 
+    # 1.1.1.2 Ensure mounting of FAT filesystems is disabled
+    # 1.1.1.3 Ensure mounting of squashfs filesystems is disabled
+    # 1.1.1.4 Ensure mounting of udf filesystems is disabled 
+    # 1.1.23 Disable USB Storage
+    # 3.3.1 Ensure DCCP is disabled 
+    # 3.3.2 Ensure SCTP is disabled
+    # 3.3.3 Ensure RDS is disabled
+    # 3.3.4 Ensure TIPC is disabled 
+    - name: Copy CIS.conf for modprobe
+      copy:
+        src: CIS.conf
+        dest: /etc/modprobe.d/.conf
+        owner: root
+        group: root
+        mode: '0700'
+    # 5.2.3 Ensure permissions on SSH private host key files are configured
+    - name: Set root ownership on server private SSH key files
+      shell: 
+        cmd: find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chown root:root {} \;
+    - name: Set file mode permissions on server private SSH key files
+      shell: 
+        cmd: find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chmod 0600 {} \;
+    # 5.2.4 Ensure permissions on SSH public host key files are configured
+    - name: Set root ownership on server public SSH key files
+      shell: 
+        cmd: find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chmod 0644 {} \;
+    - name: Set file mode permissions on server public SSH key files
+      shell: 
+        cmd: find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chown root:root {} \;
+    # 5.2.6 Ensure SSH X11 forwarding is disabled
+    - name: Ensure SSH X11 forwarding is disabled
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^X11Forwarding yes'
+        line: 'X11Forwarding no'
+        backrefs: yes
+    # 5.2.7 Ensure SSH MaxAuthTries is set to 4 or less
+    - name: Ensure SSH MaxAuthTries is set to 3
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#MaxAuthTries 6'
+        line: MaxAuthTries 4
+        backrefs: yes
+    # 5.2.10 Ensure SSH root login is disabled 
+    - name: Ensure SSH root login is disabled 
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin yes'
+        line: 'PermitRootLogin no'
+        backrefs: yes
+    # 5.2.13 Ensure SSH Idle Timeout Interval is configured
+    - name: Ensure SSH Idle Timeout Interval is configured ClientAliveInterval
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#ClientAliveInterval 0'
+        line: 'ClientAliveInterval 300'
+        backrefs: yes
+    - name: Ensure SSH Idle Timeout Interval is configured ClientAliveCountMax
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#ClientAliveCountMax 3'
+        line: 'ClientAliveCountMax 0'
+        backrefs: yes
+    # 5.2.14 Ensure SSH LoginGraceTime is set to one minute or less
+    - name: Ensure SSH LoginGraceTime is set to one minute or less
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#LoginGraceTime 2m'
+        line: 'LoginGraceTime 60'
+        backrefs: yes 
+    # 5.2.15 Ensure SSH warning banner is configured 
+    - name: Ensure SSH warning banner is configured 
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#Banner none'
+        line: 'Banner /etc/issue'
+        backrefs: yes
+    # 5.2.17 Ensure SSH AllowTcpForwarding is disabled 
+    - name: Ensure SSH AllowTcpForwarding is disabled  
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#AllowTcpForwarding yes'
+        line: 'AllowTcpForwarding no'
+        backrefs: yes
+    # 5.2.18 Ensure SSH MaxStartups is configured 
+    - name: Ensure SSH MaxStartups is configured
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#MaxStartups 10:30:100'
+        line: 'MaxStartups 10:30:60'
+        backrefs: yes
+    - name: "Restart sshd"
+      systemd:
+        name: sshd
+        enabled: yes
+        state: restarted
+    # 1.8.1.3 Ensure remote login warning banner is configured properly
+    - name: Ensure remote login warning banner /etc/issue.net
+      copy:
+        src: issue
+        dest: /etc/issue.net
+        owner: root
+        group: root
+        mode: 0644
+    - name: Ensure remote login warning banner /etc/issue
+      copy:
+        src: issue
+        dest: /etc/issue
+        owner: root
+        group: root
+        mode: 0644
+    # 1.3.1 Ensure AIDE is installed 
+    - name: Install AIDE
+      yum:
+        name: aide
+        state: latest
+    - name: Copy aide.conf
+      copy:
+        src: aide.conf
+        dest: /etc/aide.conf
+        owner: root
+        group: root
+        mode: 0600
+    - name: Check for AIDE database
+      stat: path=/var/lib/aide/aide.db.gz
+      register: aide_db
+    - name: Initialize the AIDE database
+      shell: "aide --init"
+      when: not aide_db.stat.exists
+    - name: Move the new AIDE database
+      shell: "mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz"
+      when: not aide_db.stat.exists
+    # 1.3.2 Ensure filesystem integrity is regularly checked
+    - name: Add AIDE cron job
+      cron:
+        name: "Run AIDE check"
+        job: "/usr/sbin/aide --check"
+        minute: "5"
+        hour: "4"
