@@ -14,11 +14,10 @@ mkdir /mnt/var/log/
 mount /dev/mapper/vg-lv_var_log /mnt/var/log/ 
 mkdir /mnt/var/log/audit 
 mount /dev/mapper/vg-lv_var_log_audit /mnt/var/log/audit/ 
-mkdir /mnt/var/tmp
-mount /dev/mapper/vg-lv_var_tmp /mnt/var/tmp/
 mount /dev/mapper/vg-lv_home /mnt/home/ 
 
 mv /mnt/root/tmp/{.[!.],}* /mnt/tmp/
+mv /mnt/root/var/tmp/{.[!.],}* /mnt/tmp/
 mv /mnt/root/var/log/audit/* /mnt/var/log/audit/
 rm -rf /mnt/root/var/log/audit/
 mv /mnt/root/var/log/* /mnt/var/log/ 
