@@ -5,7 +5,7 @@ sudo systemctl disable cockpit-motd
 sudo systemctl mask cockpit-motd
 sudo dnf -q -y upgrade
 sudo dnf -q -y install epel-release
-sudo dnf -q -y install ansible git nano vim htop
+sudo dnf -q -y install ansible git nano vim htop bash-completion
 cat << EOF >> ~/.ansible.cfg
 [defaults]
 retry_files_enabled = False
