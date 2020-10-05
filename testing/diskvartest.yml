@@ -1,0 +1,10 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  vars:
+    mydisk: nvme0n1p
+  tasks:
+    - name: Find size of partition 1
+      shell: parted /dev/{{ mydisk }}1 print | grep "^Disk /dev/{{ mydisk }}1" | awk {'print $3'}
+      register: part1size
+    - debug: var=part1size.stdout_lines
