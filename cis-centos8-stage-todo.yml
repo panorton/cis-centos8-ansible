@@ -3,17 +3,6 @@
 - hosts: 127.0.0.1
   connection: local
   tasks:
-    # 1.1.2 Ensure separate partition exists for /tmp
-    - name: unmask tmp.mount
-      shell: systemctl unmask tmp.mount
-    - name: enable tmp.mount
-      shell: systemctl enable tmp.mount
-    - name: Setup tmpfs on /tmp
-      lineinfile:
-        path: /etc/systemd/system/local-fs.target.wants/tmp.mount
-        regexp: '^Options=mode=1777,strictatime$'
-        line: 'Options=mode=1777,strictatime,nosuid,nodev,noexec,size=2G'
-        backrefs: yes
     # 4.2.1.3 Ensure rsyslog default file permissions configured
     - name: Ensure rsyslog default file permissions configured
       lineinfile:
