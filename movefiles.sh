@@ -27,7 +27,6 @@ mv /mnt/root/home/* /mnt/home/
 
 cat << EOF >> /mnt/root/etc/fstab
 /dev/vg/lv_home /home   xfs     defaults,nodev        0 0
-/dev/vg/lv_tmp  /tmp    xfs     rw,nodev,noexec,nosuid        0 0
 /dev/vg/lv_var  /var    xfs     defaults,nodev        0 0
 /dev/vg/lv_var_log      /var/log        xfs     defaults,nodev        0 0
 /dev/vg/lv_var_log_audit        /var/log/audit  xfs     defaults,nodev        0 0

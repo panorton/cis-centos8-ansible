@@ -53,3 +53,14 @@
             mode: off
             devices: ["/"]
             ignore_growroot_disabled: false
+    # 1.1.2 Ensure /tmp is configured 
+    - name: unmask tmp.mount
+      shell: systemctl unmask tmp.mount
+    - name: enable tmp.mount
+      shell: systemctl enable tmp.mount
+    - name: Setup tmpfs on /tmp
+      lineinfile:
+        path: /etc/systemd/system/local-fs.target.wants/tmp.mount
+        regexp: '^Options=mode=1777,strictatime,nosuid,nodev$'
+        line: 'Options=mode=1777,strictatime,noexec,nodev,nosuid,size=2G'
+        backrefs: yes
