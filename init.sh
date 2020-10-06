@@ -3,6 +3,8 @@
 sudo rm -f /etc/motd.d/cockpit /etc/issue.d/cockpit.issue
 sudo systemctl disable cockpit-motd
 sudo systemctl mask cockpit-motd
+# Fixes: Kernel install errors due to gdisk package missing - https://www.spinics.net/lists/centos-devel/msg18766.html
+sudo dnf -q -y install gdisk
 sudo dnf -q -y upgrade
 sudo dnf -q -y install epel-release
 sudo dnf -q -y install ansible git nano vim htop bash-completion
