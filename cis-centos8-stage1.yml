@@ -53,6 +53,12 @@
             mode: off
             devices: ["/"]
             ignore_growroot_disabled: false
+      ignore_erors: yes
+    - name: Remove gce-disk-expand package
+      yum:
+        name: gce-disk-expand
+        state: absent
+      ignore_errors: yes
     # 1.1.2 Ensure /tmp is configured 
     - name: unmask tmp.mount
       shell: systemctl unmask tmp.mount
