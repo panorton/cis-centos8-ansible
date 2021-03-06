@@ -10,7 +10,7 @@
     mypart3: /dev/sda3
   tasks:
     - name: Find size of partition 2
-      shell: parted {{ mydisk }} print | grep "^ 2" | awk {'print $3'}
+      shell: parted -s {{ mydisk }} print | grep "^ 2" | awk {'print $3'}
       register: part2size
     - name: Create second partition for VG CIS mounts
       parted:
