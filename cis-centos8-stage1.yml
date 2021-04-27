@@ -2,7 +2,7 @@
 - hosts: 127.0.0.1
   connection: local
   tasks:
-    - name: Set SELinux to permissive mode
+    - name: Set SELinux to enforcing mode
       selinux:
         policy: targeted
         state: enforcing
