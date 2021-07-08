@@ -203,7 +203,7 @@
     - name: Copy CIS.conf for modprobe
       copy:
         src: CIS.conf
-        dest: /etc/modprobe.d/.conf
+        dest: /etc/modprobe.d/CIS.conf
         owner: root
         group: root
         mode: '0700'
